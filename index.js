@@ -1,18 +1,90 @@
 require('dotenv').config();
+const axios = require('axios');
 
-// 1. Create a command line program in a language of your choice, which retrieves the information of  a GitHub User
-// 1.1 Your program should be able to get GitHub user login (username) and Freshdesk  subdomain from the command line.
-// 1.2 For authentication assume GitHub personal access token is given in GITHUB_TOKEN  environmental variable and Freshdesk API key is given in FRESHDESK_TOKEN  environmental variable.
+// Fetch the gitHub user's data
+async function getGithubData(username, token) {
+  try {
+    const response = await axios.get(`https://api.github.com/users/${username}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    const emailData = await axios.get(`https://api.github.com/user/emails`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const primaryEmail = emailData.data.filter((email) =>  email.primary == true )[0].email
+    response.data.email = primaryEmail
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get users information', error.message)
+    return null
+  }
+}
 
+module.exports = {
+  getGithubData,
+  createFreshdeskContact,
+};
 
+// Create a new contact in Freshdesk
+async function createFreshdeskContact(subdomain, contactInfo, apiKey ) {
+  try {
+    const response = await axios.post(`https://${subdomain}.myfreshworks.com/crm/sales/api/contacts`, contactInfo,{
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Token token=${apiKey}`
+      }
+    });
+    return response.data
+  } catch (error) {
+    console.error('Failed to create a Freshdesk contact', error.message)
+    return null
+  }
+}
 
-// 2. Create a new Contact or updates an existing contact in Freshdesk, using their  respective APIs with the information you fetched from GitHub
+// module.exports = createFreshdeskContact;
 
-// 3. Please provide unit tests for the main program functionality. Create a separate module  for the unit tests.
+// Read user input from the command line
+const readline = require('readline');
+const userInput = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
 
-// 4. Please provide a README.md file with instructions on how to run the program and the  tests.
+userInput.question('Enter GitHub username - ' , async (username) => {
+  userInput.question('Enter Freshdesk subdomain - ', async (subdomain) => {
+    userInput.close();
 
-// Optional: Persist login, name, and the creation date of the GitHub user in a table in a  relational database of your choice. If you choose to work on this optional task, please  include the create script of your database as a file in your repo.
+    const githubToken = process.env.GITHUB_TOKEN
+    const freshdeskToken = process.env.FRESHDESK_TOKEN
 
-// process.env.GITHUB_TOKEN
-// process.env.FRESHDESK_TOKEN
+    const githubUserInfo = await getGithubData(username, githubToken)
+
+    if(githubUserInfo){
+      console.log(
+        `This is the information for github user - ${username}:
+        Username: ${githubUserInfo.login}
+        Name: ${githubUserInfo.name}
+        Bio: ${githubUserInfo.bio}
+        Email: ${githubUserInfo.email}
+        `
+      )
+
+      const contactData = {
+        first_name: githubUserInfo.name,
+        email: githubUserInfo.email
+      };
+
+      const createFdContact = await createFreshdeskContact(subdomain, contactData, freshdeskToken  )
+      if(createFdContact) {
+        console.log(
+          `A new freshdesk contact has been created:
+          Name: ${createFdContact.contact.first_name}
+          Email: ${createFdContact.contact.email}
+          `)
+      }
+    }
+  });
+});
