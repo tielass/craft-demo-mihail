@@ -29,4 +29,4 @@ This is a command line program in JavaScript that retrieves the information of a
 
 ## Running the Tests
 
-To run the unit tests, use the following command: `npx jest contact.test.js`
+To run the unit tests, use the following command: `jest`
