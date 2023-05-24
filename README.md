@@ -23,10 +23,11 @@ This is a command line program in JavaScript that retrieves the information of a
    - `GITHUB_TOKEN`: GitHub personal access token
    - `FRESHDESK_TOKEN`: Freshdesk API key
 
-2. Run the program: `node index.js`
+2. Run the program: `node src/main.js`
 
 3. Follow the prompts to enter the GitHub username and Freshdesk subdomain.
 
 ## Running the Tests
 
-To run the unit tests, use the following command: `jest`
+To run the unit tests, use the following command: `jest src/services/tests/freshdeskApi.test.js` or
+`jest src/services/tests/freshdeskApi.test.js`
